@@ -66,19 +66,50 @@
 <NoteEditorScreen>:
     name: 'note_editor'
     BoxLayout:
+        spacing: 10
+        padding: [10, 10]
         orientation: 'vertical'
+
+        #title input field for each note 
         TextInput:
             id: note_title
-            hint_text: 'Title'
+            hint_text: 'Enter your note title'
+            size_hint_y: 0.1
+            font_size: 17
+            multiline: False
+
+
+        # content input fiel d=for each note
         TextInput:
             id: note_content
-            hint_text: 'Content'
+            hint_text: 'Add your notes content'
             multiline: True
+            font_size: 17
+
+
+
+        # save and back buttons
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.1
+            spacing: 10
+            padding: [5, 5]
+
+            # save Button:
         Button:
             text: 'Save Note'
+            size: (120,40)
+            font_size: 16
+            background_color: [0.2, 0.6, 1, 1]#light blue color 
+            color: [1,1,1,1]#white text color
             on_press: app.save_note(note_title.text, note_content.text)
+
+            # the back Button:
         Button:
             text: 'Back'
+            size: 80, 40
+            font_size: 16
+            background_color: [0.8, 0.2, 0.2, 1] 
             on_press: root.manager.current = 'home'
 
 <SettingsScreen>:
