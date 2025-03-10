@@ -5,47 +5,63 @@
 
 <HomeScreen>:
     name: 'home'
-    BoxLayout:
-        orientation: 'vertical'
-
-
-        # # title banner section 
-        # Label:
-        #     text: 'My Notes'
-        #     font_size: 32
-        #     size_hint_y: 0.2
-        #     bold: True
-        #     halign: 'center'
-
-
-            # notes list placeholder/listveiw for actual NoteEditorScreen:
-    BoxLayout:
-        orientation: 'vertical'
-        padding: [10, 10]
-        spacing: 10
-        Label:
-            text: 'No Notes yet!'
-            size_hint_y: 0.7
-            halign: 'center'
-            font_size: 20
-
-            # DropDown menu for actions and navigation 
-    BoxLayout:
-        size_hint_y: 0.1
-        padding: [20, 0]
+    FloatLayout:
+        # Dropdown Menu Button in the Top-Left Corner
         Button:
             text: 'Menu'
-            size_hint_x: 0.3
+            size_hint: None, None
+            size: 120, 50  # Adjust the button size as needed
+            pos_hint: {'x': 0.02, 'y': 0.9}  # Position in the upper-left corner
             on_release: app.open_dropdown(self)
+
+        # Title Label (Centered)
+        Label:
+            text: 'My Notes'
+            font_size: 32
+            size_hint: None, None
+            size: self.texture_size
+            pos_hint: {'center_x': 0.5, 'y': 0.8}
+
+        # Notes List Placeholder
+        Label:
+            text: 'No Notes Yet!'
+            font_size: 20
+            size_hint: None, None
+            size: self.texture_size
+            pos_hint: {'center_x': 0.5, 'y': 0.5}
+        
+            orientation: 'vertical'
+
+
+
+    #         # notes list placeholder/listveiw for actual NoteEditorScreen:
+    # BoxLayout:
+    #     orientation: 'vertical'
+    #     padding: [10, 10]
+    #     spacing: 10
+    #     Label:
+    #         text: 'No Notes yet!'
+    #         size_hint_y: 0.7
+    #         halign: 'center'
+            # font_size: 20
+
+            # DropDown menu for actions and navigation 
+    # BoxLayout:
+    #     size_hint_y: 0.1
+    #     padding: [20, 0]
+    #     Button:
+    #         text: 'Menu'
+    #         size_hint_x: 0.3
+    #         on_release: app.open_dropdown(self)
 
                 
                 
-        Button:
-            text: 'Create Note'
-            on_press: root.manager.current = 'note_editor'
-        Button:
-            text: 'Settings'
-            on_press: root.manager.current = 'settings'
+    #     Button:
+    #         text: 'Create Note'
+    #         on_press: root.manager.current = 'note_editor'
+    #     Button:
+    #         text: 'Settings'
+    #         on_press: root.manager.current = 'settings'
 
 <NoteEditorScreen>:
     name: 'note_editor'
@@ -77,3 +93,13 @@
         Button:
             text: 'Back'
             on_press: root.manager.current = 'home'
+
+<Button>:
+    font_size: 18
+    background_color: [0.2, 0.6, 1, 1]  # Light blue color
+    color: [1, 1, 1, 1]  # White text color
+    border: [10, 10, 10, 10]
+
+<Label>:
+    font_size: 16
+    color: [0.5, 0.5, 0.5, 1]  # Gray text
