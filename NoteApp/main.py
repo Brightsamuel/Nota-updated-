@@ -29,9 +29,6 @@ class NotesApp(App):
 if __name__ == '__main__':
     NotesApp().run()
 
-
-
-
 # theme
 import json
 

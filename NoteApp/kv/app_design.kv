@@ -7,8 +7,39 @@
     name: 'home'
     BoxLayout:
         orientation: 'vertical'
+
+
+        # # title banner section 
+        # Label:
+        #     text: 'My Notes'
+        #     font_size: 32
+        #     size_hint_y: 0.2
+        #     bold: True
+        #     halign: 'center'
+
+
+            # notes list placeholder/listveiw for actual NoteEditorScreen:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [10, 10]
+        spacing: 10
         Label:
-            text: 'My Notes'
+            text: 'No Notes yet!'
+            size_hint_y: 0.7
+            halign: 'center'
+            font_size: 20
+
+            # DropDown menu for actions and navigation 
+    BoxLayout:
+        size_hint_y: 0.1
+        padding: [20, 0]
+        Button:
+            text: 'Menu'
+            size_hint_x: 0.3
+            on_release: app.open_dropdown(self)
+
+                
+                
         Button:
             text: 'Create Note'
             on_press: root.manager.current = 'note_editor'
