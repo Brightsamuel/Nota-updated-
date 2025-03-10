@@ -1,0 +1,48 @@
+<AppScreenManager>:
+    HomeScreen:
+    NoteEditorScreen:
+    SettingsScreen:
+
+<HomeScreen>:
+    name: 'home'
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: 'My Notes'
+        Button:
+            text: 'Create Note'
+            on_press: root.manager.current = 'note_editor'
+        Button:
+            text: 'Settings'
+            on_press: root.manager.current = 'settings'
+
+<NoteEditorScreen>:
+    name: 'note_editor'
+    BoxLayout:
+        orientation: 'vertical'
+        TextInput:
+            id: note_title
+            hint_text: 'Title'
+        TextInput:
+            id: note_content
+            hint_text: 'Content'
+            multiline: True
+        Button:
+            text: 'Save Note'
+            on_press: app.save_note(note_title.text, note_content.text)
+        Button:
+            text: 'Back'
+            on_press: root.manager.current = 'home'
+
+<SettingsScreen>:
+    name: 'settings'
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: 'Settings'
+        Button:
+            text: 'Switch to Dark Theme'
+            on_press: app.switch_theme('dark')
+        Button:
+            text: 'Back'
+            on_press: root.manager.current = 'home'
