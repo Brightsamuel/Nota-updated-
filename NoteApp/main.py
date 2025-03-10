@@ -8,6 +8,7 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.dropdown import DropDown
 from kivy.uix.textinput import TextInput
+from utils.db_operations import add_note
 
 # Load KV file for UI design
 Builder.load_file('kv/app_design.kv')
@@ -67,6 +68,18 @@ class NotesApp(App):
         elif action == 'exit':
             self.stop()
     
+
+    # the save note button triggers the savenot function 
+    def save_note(self, title, content):
+        if not title.strip() or not content.strip():
+            print("Note title and content cannot be empty!")
+            return
+        
+        add_note(title, content)
+        print(f"Note '{title}' saved successfully!")
+        self.root.current = 'home'
+
+
 if __name__ == '__main__':
     NotesApp().run()
 
