@@ -4,11 +4,10 @@ from kivy.graphics import Rectangle
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
-from kivymd.uix.button import MDFlatButton, MDIconButton, MDRectangleFlatIconButton
+from kivymd.uix.button import MDFlatButton, MDIconButton, MDRaisedButton
 from kivy.uix.popup import Popup
 from kivymd.uix.label import MDLabel
 from kivy.uix.textinput import TextInput
-from kivy.animation import Animation
 from utils.db_helper import DatabaseHelper
 from kivymd.uix.card import MDCard
 from kivymd.uix.menu import MDDropdownMenu
@@ -59,6 +58,7 @@ class FolderSelectButton(MDCard, ButtonBehavior):
         self.add_widget(self.folder_label)
         self.add_widget(self.arrow_icon)
 
+        # Changed binding from on_press to on_release for consistency
         self.arrow_icon.bind(on_release=self._on_arrow_press)
 
     def on_release(self):
@@ -86,7 +86,7 @@ class FolderDialog:
         folder_list = self._create_folder_list(for_selection=True)
         content.add_widget(folder_list)
 
-        close_button = MDFlatButton(text="Close", on_release=self.dismiss_popup)
+        close_button = MDRaisedButton(text="Close", on_release=self.dismiss_popup)
         close_button.md_bg_color = (0.3, 0.6, 0.8, 1)
         close_button.text_color = (1, 1, 1, 1)
 
@@ -150,7 +150,7 @@ class FolderDialog:
                 folder_name=folder['name'],
                 is_locked=folder['is_locked'],
                 on_folder_select=self._on_folder_selected if for_selection else self.move_to_folder,
-                on_folder_options=self._show_folder_options_menu)
+                on_folder_options=self._show_folder_options)
             folder_layout.add_widget(folder_button)
 
         scroll_view.add_widget(folder_layout)
@@ -168,26 +168,70 @@ class FolderDialog:
             self.folder_manager.move_to_folder(folder_id, is_locked, self.note_id)
         self.dismiss_popup()
 
-    def _show_folder_options_menu(self, folder_id, folder_name):
-        """Shows a dropdown menu for folder options."""
-        menu_items = [
-            {"text": "Rename Folder", "on_release": lambda: self._rename_folder(folder_id, folder_name)},
-            {"text": "Delete Folder", "on_release": lambda: self._delete_folder(folder_id)},
-            {"text": "Change Password", "on_release": lambda: self._change_folder_password(folder_id)}
-        ]
-        self.dropdown_menu = MDDropdownMenu(caller=self.folder_popup.content, items=menu_items, width_mult=3)
-        self.dropdown_menu.open()
+    def _show_folder_options(self, folder_id, folder_name):
+        """Shows a simple dialog for folder options."""
+        options_layout = MDBoxLayout(orientation='vertical', spacing=10, padding=10)
+        
+        rename_button = MDFlatButton(
+            text="Rename Folder",
+            theme_text_color="Custom",
+            text_color=(1, 1, 1, 1),
+            size_hint_x=1)
+        delete_button = MDFlatButton(
+            text="Delete Folder",
+            theme_text_color="Custom", 
+            text_color=(1, 0.5, 0.5, 1),
+            size_hint_x=1)
+        password_button = MDFlatButton(
+            text="Change Password",
+            theme_text_color="Custom",
+            text_color=(1, 1, 1, 1),
+            size_hint_x=1)
+        
+        rename_button.bind(on_release=lambda x: self._rename_folder(folder_id, folder_name))
+        delete_button.bind(on_release=lambda x: self._delete_folder(folder_id))
+        password_button.bind(on_release=lambda x: self._change_folder_password(folder_id))
+        
+        options_layout.add_widget(rename_button)
+        options_layout.add_widget(delete_button)
+        options_layout.add_widget(password_button)
+        
+        close_button = MDRaisedButton(
+            text="Close",
+            theme_text_color="Custom",
+            text_color=(1, 1, 1, 1),
+            md_bg_color=(0.3, 0.3, 0.3, 1),
+            size_hint_x=1)
+        close_button.bind(on_release=lambda x: self.dismiss_options_popup())
+        
+        options_layout.add_widget(close_button)
+        
+        self.options_popup = Popup(
+            title=f"Folder Options: {folder_name}",
+            content=options_layout,
+            size_hint=(0.8, 0.5))
+        self.options_popup.open()
+    
+    def dismiss_options_popup(self):
+        if hasattr(self, 'options_popup') and self.options_popup:
+            self.options_popup.dismiss()
 
     def _rename_folder(self, folder_id, folder_name):
-        self.dropdown_menu.dismiss()
+        """Show dialog to rename folder"""
+        if hasattr(self, 'options_popup') and self.options_popup:
+            self.options_popup.dismiss()
         self.folder_manager.rename_folder(folder_id, folder_name)
 
     def _delete_folder(self, folder_id):
-        self.dropdown_menu.dismiss()
+        """Delete folder after confirmation"""
+        if hasattr(self, 'options_popup') and self.options_popup:
+            self.options_popup.dismiss()
         self.folder_manager.delete_folder(folder_id)
 
     def _change_folder_password(self, folder_id):
-        self.dropdown_menu.dismiss()
+        """Change folder password"""
+        if hasattr(self, 'options_popup') and self.options_popup:
+            self.options_popup.dismiss()
         self.folder_manager.change_folder_password(folder_id)
 
     def show_folder_dialog(self, instance=None):
@@ -276,20 +320,21 @@ class FolderDialog:
         
         buttons = MDBoxLayout(size_hint_y=None, height=60, spacing=15, padding=[0, 10, 0, 0])
         
-        create_folder_button = MDFlatButton(
+        create_folder_button = MDRaisedButton(
             text="Create Folder",
             md_bg_color=(0.2, 0.6, 0.8, 1),
             theme_text_color="Custom",
             text_color=(1, 1, 1, 1))
         
-        cancel_button = MDFlatButton(
+        cancel_button = MDRaisedButton(
             text="Cancel",
             md_bg_color=(0.5, 0.5, 0.5, 1),
             theme_text_color="Custom",
             text_color=(1, 1, 1, 1))
         
-        create_folder_button.bind(on_release=self.create_new_folder)
-        cancel_button.bind(on_release=self.dismiss_popup)
+        # Changed from on_release to on_press for more immediate response
+        create_folder_button.bind(on_press=self.create_new_folder)
+        cancel_button.bind(on_press=self.dismiss_popup)
         
         buttons.add_widget(create_folder_button)
         buttons.add_widget(cancel_button)
@@ -307,7 +352,7 @@ class FolderDialog:
         self.folder_popup.open()
 
     def toggle_lock(self, instance):
-        """Toggle the lock state with improved layout handling."""
+        """Toggle the lock state with simplified approach."""
         self.is_locked = not self.is_locked
         
         if self.is_locked:
@@ -315,43 +360,27 @@ class FolderDialog:
             instance.md_bg_color = (0.8, 0.4, 0.2, 1)
             instance.icon_color = (1, 0.8, 0.2, 1)
             
-            password_field_height = dp(40)
-            
+            self.password_layout.height = dp(40)
+            self.password_layout.opacity = 1
             self.password_input.opacity = 1
             self.password_input.disabled = False
-            
-            anim1 = Animation(height=password_field_height, opacity=1, duration=0.3)
-            anim1.start(self.password_layout)
-            
-            parent_layout = self.password_layout.parent
-            if parent_layout:
-                current_height = parent_layout.height
-                anim2 = Animation(height=current_height + password_field_height, duration=0.3)
-                anim2.start(parent_layout)
         else:
             instance.icon = "lock-open"
             instance.md_bg_color = (0.3, 0.3, 0.3, 1)
             instance.icon_color = (0.9, 0.9, 0.9, 1)
             
             self.password_input.disabled = True
-            
-            password_field_height = dp(40)
-            
-            anim1 = Animation(height=0, opacity=0, duration=0.3)
-            anim1.start(self.password_layout)
-            
-            parent_layout = self.password_layout.parent
-            if parent_layout and parent_layout.height > password_field_height:
-                anim2 = Animation(height=parent_layout.height - password_field_height, duration=0.3)
-                anim2.start(parent_layout)
-                
+            self.password_layout.height = 0
+            self.password_layout.opacity = 0
             self.password_input.text = ""
+
     def _update_rect(self, instance, value):
             """Update rectangle position and size for canvas backgrounds."""
             for child in instance.canvas.before.children:
                 if isinstance(child, Rectangle):
                     child.pos = instance.pos
                     child.size = instance.size
+
     def create_new_folder(self, instance):
         """Create a new folder and move the note to it."""
         folder_name = self.folder_name_input.text.strip()
@@ -395,5 +424,5 @@ class FolderDialog:
             self.folder_popup.dismiss()
         if hasattr(self, 'folder_selector_popup') and self.folder_selector_popup:
             self.folder_selector_popup.dismiss()
-        if hasattr(self, 'dropdown_menu') and self.dropdown_menu:
-            self.dropdown_menu.dismiss()
+        if hasattr(self, 'options_popup') and self.options_popup:
+            self.options_popup.dismiss()

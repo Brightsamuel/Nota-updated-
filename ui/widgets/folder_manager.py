@@ -10,7 +10,7 @@ from utils.db_helper import DatabaseHelper
 from kivymd.uix.button import MDFloatingActionButton
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.textfield import MDTextField
-from kivymd.uix.button import MDRectangleFlatIconButton
+from kivymd.uix.button import MDRectangleFlatIconButton, MDRaisedButton
 from ui.widgets.folder_select import FolderSelectButton, FolderDialog
 
 class FolderManager:
@@ -39,21 +39,24 @@ class FolderManager:
         """Create a new folder in the database."""
         folder_id = self.db.create_folder(folder_name, is_locked, password)      
 
-    def move_to_folder(self, folder_id, is_locked):
+    def move_to_folder(self, folder_id, is_locked, note_id=None):
         """Move the note to the selected folder."""
+        if note_id is None and hasattr(self.note_view, 'note') and self.note_view.note:
+            note_id = self.note_view.note.id
+            
         if is_locked:
             self.dismiss_popup(None)
-            self.show_password_prompt(folder_id)
+            self.show_password_prompt(folder_id, note_id)
         else:
-            self.db.move_note_to_folder(self.note_view.note.id, folder_id)
+            self.db.move_note_to_folder(note_id, folder_id)
             self.note_view.show_notification("Success", "Note moved to folder")
             
-            if self.note_view.refresh_callback:
+            if hasattr(self.note_view, 'refresh_callback') and self.note_view.refresh_callback:
                 self.note_view.refresh_callback()
             
             self.dismiss_popup(None)
 
-    def show_password_prompt(self, folder_id):
+    def show_password_prompt(self, folder_id, note_id=None):
         """Show prompt to enter folder password."""
         content = MDBoxLayout(orientation='vertical', spacing=10, padding=[20, 10])
         content.bind(pos=self._update_rect, size=self._update_rect)
@@ -74,20 +77,22 @@ class FolderManager:
         )
         buttons = MDBoxLayout(size_hint_y=None, height=50, spacing=10)
         
-        unlock_button = MDFlatButton(
+        # Changed to MDRaisedButton for better visual feedback
+        unlock_button = MDRaisedButton(
             text="Unlock",
             md_bg_color=(0.2, 0.6, 0.8, 1),
             theme_text_color="Custom",
             text_color=(1, 1, 1, 1)
         )
-        cancel_button = MDFlatButton(
+        cancel_button = MDRaisedButton(
             text="Cancel",
             md_bg_color=(0.3, 0.3, 0.3, 1),
             theme_text_color="Custom",
             text_color=(1, 1, 1, 1))
         
-        unlock_button.bind(on_press=lambda x: self.verify_folder_password(folder_id))
-        cancel_button.bind(on_press=self.dismiss_popup)
+        # Changed from on_press to on_release for consistency
+        unlock_button.bind(on_release=lambda x: self.verify_folder_password(folder_id, note_id))
+        cancel_button.bind(on_release=self.dismiss_popup)
         
         buttons.add_widget(unlock_button)
         buttons.add_widget(cancel_button)
@@ -111,17 +116,25 @@ class FolderManager:
         self.password_popup.open()
 
     def _update_rect(self, instance, value):
-        self.popup_rect.pos = instance.pos
-        self.popup_rect.size = instance.size
+        if hasattr(self, 'popup_rect'):
+            self.popup_rect.pos = instance.pos
+            self.popup_rect.size = instance.size
 
-    def verify_folder_password(self, folder_id):
+    def verify_folder_password(self, folder_id, note_id=None):
         """Verify the folder password and move the note if correct."""
+        if not hasattr(self, 'folder_password_input'):
+            return
+            
         password = self.folder_password_input.text.strip()
+        
+        if note_id is None and hasattr(self.note_view, 'note') and self.note_view.note:
+            note_id = self.note_view.note.id
+            
         if self.db.check_folder_password(folder_id, password):
-            self.db.move_note_to_folder(self.note_view.note.id, folder_id)
+            self.db.move_note_to_folder(note_id, folder_id)
             self.note_view.show_notification("Success", "Note moved to locked folder")
             
-            if self.note_view.refresh_callback:
+            if hasattr(self.note_view, 'refresh_callback') and self.note_view.refresh_callback:
                 self.note_view.refresh_callback()
             
             self.dismiss_popup(None)
@@ -130,6 +143,9 @@ class FolderManager:
             
     def check_folder_password(self, folder_id, folder_name):
         """Check if password is correct and open folder if it is"""
+        if not hasattr(self, 'password_field'):
+            return
+            
         password = self.password_field.text
         
         if self.db.check_folder_password(folder_id, password):
