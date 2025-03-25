@@ -49,6 +49,16 @@ class DatabaseHelper:
                     INSERT INTO folders (id, name, is_locked)
                     VALUES (1, 'Default', 0)
                 ''')
+            # Create users table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    email TEXT NOT NULL UNIQUE,
+                    password TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
             
             self.conn.commit()
         finally:
@@ -380,5 +390,45 @@ class DatabaseHelper:
             self.conn.commit()
             self.conn.commit()
             self.schema_updated = True  # Set the flag to True after updating
+        finally:
+            self.close()
+
+    def create_user(self, name, email, password):
+        """Create a new user account"""
+        try:
+            cursor = self.connect()
+            # First check if email already exists
+            cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+            if cursor.fetchone():
+                return None
+                
+            # Create new user
+            cursor.execute(
+                "INSERT INTO users (name, email, password, created_at) VALUES (?, ?, ?, datetime('now'))",
+                (name, email, password)  # In production, you should hash the password!
+            )
+            self.conn.commit()
+            return cursor.lastrowid
+        except Exception as e:
+            print(f"Error creating user: {e}")
+            return None
+        finally:
+            self.close()
+
+    def verify_user(self, email, password):
+        """Verify user credentials"""
+        try:
+            cursor = self.connect()
+            cursor.execute(
+                "SELECT id, email FROM users WHERE email = ? AND password = ?",
+                (email, password)  # In production, compare hashed passwords!
+            )
+            user = cursor.fetchone()
+            if user:
+                return {'id': user['id'], 'email': user['email']}
+            return None
+        except Exception as e:
+            print(f"Error verifying user: {e}")
+            return None
         finally:
             self.close()

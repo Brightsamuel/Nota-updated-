@@ -58,12 +58,37 @@ class FolderSelectButton(MDCard, ButtonBehavior):
         self.add_widget(self.folder_label)
         self.add_widget(self.arrow_icon)
 
-        # Changed binding from on_press to on_release for consistency
+        # Use direct binding to prevent event propagation issues
         self.arrow_icon.bind(on_release=self._on_arrow_press)
+        
+        # Block touch events on child widgets to prevent event conflicts
+        self.lock_icon.bind(on_touch_down=self._block_touch)
+        self.arrow_icon.bind(on_touch_down=self._block_touch)
 
-    def on_release(self):
-        if self.on_folder_select:
-            self.on_folder_select(self.folder_id, self.is_locked)
+    def _block_touch(self, instance, touch):
+        # Stop event propagation if the touch is on this widget
+        if instance.collide_point(*touch.pos):
+            if instance == self.arrow_icon:
+                return False  # Let the arrow handle its own events
+            return True
+        return False
+
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            # Pass touch to arrow icon first to check if it should handle it
+            if self.arrow_icon.collide_point(*touch.pos):
+                return self.arrow_icon.on_touch_down(touch)
+            return super().on_touch_down(touch)
+        return False
+
+    def on_touch_up(self, touch):
+        if self.collide_point(*touch.pos) and not self.arrow_icon.collide_point(*touch.pos):
+            if hasattr(touch, 'is_mouse_scrolling') and touch.is_mouse_scrolling:
+                return False
+            if self.on_folder_select:
+                self.on_folder_select(self.folder_id, self.is_locked)
+            return True
+        return super().on_touch_up(touch)
 
     def _on_arrow_press(self, instance):
         if self.on_folder_options:
@@ -170,6 +195,8 @@ class FolderDialog:
 
     def _show_folder_options(self, folder_id, folder_name):
         """Shows a simple dialog for folder options."""
+        print(f"Showing options for folder: {folder_name} (ID: {folder_id})")
+        
         options_layout = MDBoxLayout(orientation='vertical', spacing=10, padding=10)
         
         rename_button = MDFlatButton(
@@ -188,9 +215,13 @@ class FolderDialog:
             text_color=(1, 1, 1, 1),
             size_hint_x=1)
         
-        rename_button.bind(on_release=lambda x: self._rename_folder(folder_id, folder_name))
-        delete_button.bind(on_release=lambda x: self._delete_folder(folder_id))
-        password_button.bind(on_release=lambda x: self._change_folder_password(folder_id))
+        # Use lambda functions with fixed parameter capture
+        folder_id_copy = folder_id
+        folder_name_copy = folder_name
+        
+        rename_button.bind(on_press=lambda x: self._rename_folder(folder_id_copy, folder_name_copy))
+        delete_button.bind(on_press=lambda x: self._delete_folder(folder_id_copy))
+        password_button.bind(on_press=lambda x: self._change_folder_password(folder_id_copy))
         
         options_layout.add_widget(rename_button)
         options_layout.add_widget(delete_button)
@@ -202,10 +233,10 @@ class FolderDialog:
             text_color=(1, 1, 1, 1),
             md_bg_color=(0.3, 0.3, 0.3, 1),
             size_hint_x=1)
-        close_button.bind(on_release=lambda x: self.dismiss_options_popup())
+        close_button.bind(on_press=lambda x: self.dismiss_options_popup())
         
         options_layout.add_widget(close_button)
-        
+
         self.options_popup = Popup(
             title=f"Folder Options: {folder_name}",
             content=options_layout,
@@ -296,7 +327,9 @@ class FolderDialog:
             theme_icon_color="Custom",
             icon_color=(0.9, 0.9, 0.9, 1),
             md_bg_color=(0.3, 0.3, 0.3, 1))
-        self.lock_button.bind(on_release=self.toggle_lock)
+        
+        # Fix the toggle_lock binding
+        self.lock_button.bind(on_press=self.toggle_lock)
 
         self.lock_checkbox.add_widget(self.lock_label)
         self.lock_checkbox.add_widget(self.lock_button)
@@ -332,9 +365,9 @@ class FolderDialog:
             theme_text_color="Custom",
             text_color=(1, 1, 1, 1))
         
-        # Changed from on_release to on_press for more immediate response
-        create_folder_button.bind(on_press=self.create_new_folder)
-        cancel_button.bind(on_press=self.dismiss_popup)
+        # Fix button bindings - use on_press for guaranteed response
+        create_folder_button.bind(on_press=lambda x: self.create_new_folder(x))
+        cancel_button.bind(on_press=lambda x: self.dismiss_popup(x))
         
         buttons.add_widget(create_folder_button)
         buttons.add_widget(cancel_button)
@@ -353,7 +386,11 @@ class FolderDialog:
 
     def toggle_lock(self, instance):
         """Toggle the lock state with simplified approach."""
+        # Print debug info to verify the function is called
+        print("Toggle lock called")
+        
         self.is_locked = not self.is_locked
+        print(f"Lock state changed to: {self.is_locked}")
         
         if self.is_locked:
             instance.icon = "lock"
@@ -373,6 +410,10 @@ class FolderDialog:
             self.password_layout.height = 0
             self.password_layout.opacity = 0
             self.password_input.text = ""
+        
+        # Force layout update
+        if hasattr(self, 'folder_popup') and self.folder_popup:
+            self.folder_popup.content.do_layout()
 
     def _update_rect(self, instance, value):
             """Update rectangle position and size for canvas backgrounds."""

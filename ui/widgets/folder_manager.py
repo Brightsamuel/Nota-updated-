@@ -6,6 +6,7 @@ from kivy.graphics import Color, Rectangle
 from kivy.uix.textinput import TextInput
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
+from kivymd.uix.label import MDLabel
 from utils.db_helper import DatabaseHelper
 from kivymd.uix.button import MDFloatingActionButton
 from kivymd.uix.dialog import MDDialog
@@ -340,57 +341,71 @@ class FolderManager:
             self.folder_button.opacity = 1
     
     def show_folder_password_dialog(self, folder_id, folder_name):
-        """Show dialog to input password for locked folder using the desired layout"""
-        content = MDBoxLayout(orientation='vertical', spacing=10, padding=[20, 10])
-        
-        label = Label(
-            text="This folder is locked. Please enter the password:",
+        """Dialog matching your image but with proper alignment and spacing"""
+        content = MDBoxLayout(
+            orientation='vertical',
+            spacing=15,
+            padding=20,
             size_hint_y=None,
-            height=30,
-            color=(0.9, 0.9, 0.9, 1))
-        
+            height=180  # Fixed height to prevent overflow
+        )
+
+        self.password_dialog = MDDialog(
+            title=f"[b]{folder_name}[/b] is locked",
+            type="custom",
+            content_cls=content,
+            size_hint=(0.8, None),
+            height=250,  # Constrained to fit content
+            auto_dismiss=False
+        )
+
+        # Label with better contrast
+        label = MDLabel(
+            text="This folder is locked. Please enter the password:",
+            halign="center",
+            theme_text_color="Secondary",
+            font_style="Body1"
+        )
+
+        # Password field (matches your image's rectangular style)
         self.password_field = MDTextField(
             hint_text="Password",
             password=True,
-            size_hint_y=None,
-            height=40,
-            mode="rectangle")
-        
+            mode="rectangle",
+            size_hint=(1, None),
+            height=45,
+            line_color_normal=(0.5, 0.5, 0.5, 1)
+        )
+
+        # Buttons layout (fixes the cutoff issue)
         buttons_layout = MDBoxLayout(
-            orientation='horizontal',
-            size_hint_y=None,
-            height=40,
-            spacing=10)
-        
-        unlock_button = MDFlatButton(
+            spacing=10,
+            size_hint=(1, None),
+            height=50
+        )
+
+        unlock_button = MDRaisedButton(
             text="Unlock",
-            md_bg_color=(0.2, 0.6, 0.8, 1),
-            theme_text_color="Custom",
-            text_color=(1, 1, 1, 1))
-        
+            size_hint=(0.5, 1),
+            elevation=0
+        )
         cancel_button = MDFlatButton(
             text="Cancel",
-            md_bg_color=(0.3, 0.3, 0.3, 1),
+            size_hint=(0.5, 1),
             theme_text_color="Custom",
-            text_color=(1, 1, 1, 1))
-        
+            text_color=(0.5, 0.5, 0.5, 1)
+        )
+
         unlock_button.bind(on_release=lambda x: self.check_folder_password(folder_id, folder_name))
         cancel_button.bind(on_release=lambda x: self.dismiss_popup(None))
-        
-        buttons_layout.add_widget(unlock_button)
+
         buttons_layout.add_widget(cancel_button)
-        
+        buttons_layout.add_widget(unlock_button)
+
         content.add_widget(label)
         content.add_widget(self.password_field)
         content.add_widget(buttons_layout)
-        
-        self.password_dialog = MDDialog(
-            title=f"Folder Locked: {folder_name}",
-            type="custom",
-            content_cls=content,
-            size_hint=(0.8, 0.4),
-            buttons=[])
-        
+
         self.password_dialog.open()
         
     def open_folder(self, folder_id, folder_name):
