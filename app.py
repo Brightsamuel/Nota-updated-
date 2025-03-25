@@ -1,8 +1,3 @@
-# configure the graphics backend for the Kivy framework  
-#for better compatibility on Windows systems with problematic OpenGL drivers
-import os
-os.environ['KIVY_GL_BACKEND'] = 'angle_sdl2'
-
 from kivymd.app import MDApp
 from kivy.uix.screenmanager import ScreenManager
 from kivy.core.window import Window
