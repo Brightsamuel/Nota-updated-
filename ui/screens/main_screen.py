@@ -207,7 +207,7 @@ class MainScreen(Screen):
             if folder_id is None:
                 db_notes = self.db.get_all_notes()
                 # Update UI for main view
-                self.update_screen_title("Notes")
+                self.update_screen_title("Nota")
             else:
                 db_notes = self.db.get_notes_by_folder(folder_id)
                 # Get folder name and update UI
