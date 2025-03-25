@@ -1,0 +1,49 @@
+# tagmanager.kv
+<TagManager>:
+    orientation: 'vertical'
+    size_hint: (0.2, 1)
+    spacing: '10dp'
+    padding: '10dp'
+    canvas.before:
+        Color:
+            rgba: 0.1, 0.1, 0.1, 1  # Dark background
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: '10dp'
+
+        Label:
+            text: 'Tags'
+            size_hint_y: None
+            height: '40dp'
+            color: 1, 1, 1, 1
+            font_size: '18sp'
+            bold: True
+
+        TextInput:
+            id: tag_input
+            hint_text: 'New tag...'
+            size_hint_y: None
+            height: '50dp'
+            multiline: False
+            background_color: 0.2, 0.2, 0.2, 1
+            foreground_color: 1, 1, 1, 1
+
+        Button:
+            text: 'Add Tag'
+            size_hint_y: None
+            height: '40dp'
+            background_color: 0, 0.5, 0.8, 1
+            on_press: root.add_tag(tag_input.text)
+
+        ScrollView:
+            GridLayout:
+                id: tags_container
+                cols: 1
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: '5dp'
+                padding: '5dp'
