@@ -45,6 +45,10 @@ class TagManager(MDBoxLayout):
         # Process queued events
         Clock.schedule_once(lambda dt: self.process_pending_events())
 
+    def add_tag(self, text):
+        # Add tag logic
+        pass
+
     def track_event(self, event_type, **kwargs):
         if self.analytics_loaded or self.marketing_loaded:
             self.send_event(event_type, **kwargs)
