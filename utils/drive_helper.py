@@ -52,7 +52,8 @@ class DriveHelper:
                     
                     if gauth.credentials is None:
                         print("No existing credentials, starting authentication...")  # Debugging log
-                        gauth.CommandLineAuth()  # This might be causing the hang
+                        # Opens the Google sign-in page in the browser
+                        gauth.LocalWebserverAuth()
                     elif gauth.access_token_expired:
                         print("Refreshing expired credentials...")  # Debugging log
                         gauth.Refresh()
@@ -90,15 +91,17 @@ class DriveHelper:
 
     def _create_default_settings(self):
         """Create default settings.yaml file for PyDrive"""
-        settings = """client_config_backend: file
-            client_config_file: {0}
-            save_credentials: True
-            save_credentials_backend: file
-            save_credentials_file: {1}
-            get_refresh_token: True
-            oauth_scope:
-        - https://www.googleapis.com/auth/drive.file
-        - https://www.googleapis.com/auth/drive.metadata.readonly""".format(
+        settings = (
+            "client_config_backend: file\n"
+            "client_config_file: {0}\n"
+            "save_credentials: True\n"
+            "save_credentials_backend: file\n"
+            "save_credentials_file: {1}\n"
+            "get_refresh_token: True\n"
+            "oauth_scope:\n"
+            "  - https://www.googleapis.com/auth/drive.file\n"
+            "  - https://www.googleapis.com/auth/drive.metadata.readonly\n"
+        ).format(
             self.credentials_file, os.path.join(self.data_dir, "credentials.json")
         )
         

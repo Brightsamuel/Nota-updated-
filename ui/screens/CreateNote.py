@@ -1,160 +1,140 @@
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDFlatButton, MDRectangleFlatButton
-from kivy.uix.textinput import TextInput
-from kivy.uix.label import Label
-from kivy.uix.screenmanager import Screen
-from kivy.core.window import Window
-from kivy.properties import ObjectProperty
-from kivy.graphics import Color, Rectangle
-from kivy.uix.popup import Popup
-from kivymd.uix.button import MDFloatingActionButton
+from kivy.clock import Clock
+from kivy.lang import Builder
+from kivy.properties import ObjectProperty, StringProperty
+from kivymd.uix.screen import MDScreen
 from models.note import Note
-from utils.graphics import create_gradient_texture
-from utils.db_helper import DatabaseHelper
+from ui.dialogs import confirm, snackbar
+from utils.event_tracker import track_event
 
-class NotesCreate(Screen):
+Builder.load_string('''
+<EditorInput@TextInput>:
+    background_normal: ""
+    background_active: ""
+    background_color: 0, 0, 0, 0
+    foreground_color: app.theme_cls.onSurfaceColor
+    hint_text_color: app.theme_cls.onSurfaceVariantColor
+    cursor_color: app.theme_cls.primaryColor
+    selection_color: app.theme_cls.primaryColor[:3] + [.3]
+    padding: 0, "8dp"
+
+
+<NoteEditorScreen>:
+    md_bg_color: app.theme_cls.backgroundColor
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDTopAppBar:
+            type: "small"
+            theme_bg_color: "Custom"
+            md_bg_color: app.theme_cls.backgroundColor
+
+            MDTopAppBarLeadingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon: "arrow-left"
+                    on_release: root.go_back()
+
+            MDTopAppBarTitle:
+                text: root.heading
+
+            MDTopAppBarTrailingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon: "check"
+                    on_release: root.save_note()
+
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: "20dp", "4dp", "20dp", "16dp"
+            spacing: "4dp"
+
+            EditorInput:
+                id: title_input
+                hint_text: "Title"
+                multiline: False
+                font_size: "22sp"
+                size_hint_y: None
+                height: self.minimum_height
+                on_text_validate: content_input.focus = True
+
+            MDLabel:
+                text: root.timestamp
+                font_style: "Label"
+                role: "medium"
+                theme_text_color: "Custom"
+                text_color: app.theme_cls.onSurfaceVariantColor
+                adaptive_height: True
+
+            MDDivider:
+
+            EditorInput:
+                id: content_input
+                hint_text: "Start writing..."
+                font_size: "16sp"
+''')
+
+
+class NoteEditorScreen(MDScreen):
     main_screen = ObjectProperty(None)
-    
+    note = ObjectProperty(None, allownone=True)
+    heading = StringProperty("New note")
+    timestamp = StringProperty("")
+
     def __init__(self, main_screen=None, **kwargs):
-        super(NotesCreate, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.main_screen = main_screen
-        self.db = DatabaseHelper()
+        self._original = ("", "")
 
-        self.root = MDBoxLayout(orientation='vertical', padding=[15, 15], spacing=10)
-        
-        with self.root.canvas.before:
-            Color(1, 1, 1, 1)
-            self.gradient_texture = create_gradient_texture((0, 0, 0, 1), (0.2, 0.2, 0.2, 1), width=Window.width, height=Window.height)
-            self.rect = Rectangle(size=self.root.size, pos=self.root.pos, texture=self.gradient_texture)
-        self.root.bind(size=self._update_rect, pos=self._update_rect)
-        
-        header_layout = MDBoxLayout(size_hint_y=0.1, spacing=40)
+    def open_note(self, note=None):
+        """Show the editor for an existing note, or an empty one when note is None."""
+        self.note = note
+        self.ids.title_input.text = note.title if note else ""
+        self.ids.content_input.text = note.content if note else ""
+        self._original = self._values()
 
-        self.back_button = MDFloatingActionButton(
-            icon="arrow-left",
-            size_hint=(None, None),
-            size=(50, 50),
-            md_bg_color=(0, 0, 0, 1),
-            theme_icon_color="Custom",
-            icon_color=(1, 1, 1, 1),
-            pos_hint={'center_y': 0.5}
-        )
-        self.back_button.bind(on_press=self.go_back)
+        self.heading = "Edit note" if note else "New note"
+        if note and note.updated_at:
+            self.timestamp = "Edited " + note.updated_at.strftime('%d %b %Y, %H:%M')
+        else:
+            self.timestamp = ""
 
-        self.app_title = Label(
-            text='Nota',
-            size_hint_y=None,
-            height=50,
-            color=(1, 1, 1, 1),
-            font_size='24sp',
-            halign='left'
-        )
-        header_layout.add_widget(self.back_button)
-        header_layout.add_widget(self.app_title)
-        self.root.add_widget(header_layout)
-        
-        self.title_input = TextInput(
-            hint_text="Title",
-            size_hint_y=0.1,
-            background_color=(0, 0, 0, 1),
-            foreground_color=(0.9, 0.9, 0.9, 1),
-            hint_text_color=(0.5, 0.5, 0.5, 1),
-            cursor_color=(0.9, 0.9, 0.9, 1),
-            padding=[10, 10, 0, 0],
-            font_size='16sp',
-            multiline=False
-        )
-        
-        self.content_input = TextInput(
-            hint_text="Note something down...",
-            size_hint_y=0.7,
-            background_color=(0, 0, 0, 1),
-            foreground_color=(0.9, 0.9, 0.9, 1),
-            hint_text_color=(0.5, 0.5, 0.5, 1),
-            cursor_color=(0.9, 0.9, 0.9, 1),
-            padding=[10, 10, 0, 0],
-            font_size='16sp'
-        )
-        
-        self.save_button = MDRectangleFlatButton(
-            text="save",
-            size_hint=(None, None),
-            size=(100, 50),
-            md_bg_color=(0, 0, 0, 1),
-            theme_icon_color="Custom",
-            icon_color=(1, 1, 1, 1),
-            pos_hint={'right': 0.95, 'center_y': 0.5}
-        )
+        if note:
+            track_event('note_edit_started', note_id=note.id)
+        self.manager.transition.direction = 'left'
+        self.manager.current = self.name
 
-        self.root.add_widget(self.title_input)
-        self.root.add_widget(self.content_input)
-        self.root.add_widget(self.save_button)
+    def on_enter(self, *args):
+        field = self.ids.content_input if self.note else self.ids.title_input
+        Clock.schedule_once(lambda dt: setattr(field, 'focus', True), 0.1)
 
-        self.save_button.bind(on_press=self.save_note)
-        self.add_widget(self.root)
+    def _values(self):
+        return (self.ids.title_input.text.strip(), self.ids.content_input.text.strip())
 
-    def _update_rect(self, instance, value):
-        self.rect.pos = instance.pos
-        self.rect.size = instance.size
-        self.gradient_texture = create_gradient_texture((0, 0, 0, 1), (0.2, 0.2, 0.2, 1), width=instance.width, height=instance.height)
-        self.rect.texture = self.gradient_texture
+    def save_note(self, *args):
+        title, content = self._values()
 
-    def save_note(self, instance):
-        title = self.title_input.text.strip()
-        content = self.content_input.text.strip()
-
-        if not title or not content:
-            self.show_error_popup("Please enter a title and some content before saving.")
+        if not title and not content:
+            snackbar("Write something before saving")
             return
+        if not title:
+            title = content.splitlines()[0][:40]
 
-        note = Note(title, content)
-        
-        if self.main_screen:
-            self.main_screen.add_note(note)
-        
-        self.clear_input_fields()
-        
+        if self.note:
+            self.main_screen.update_note(self.note, title, content)
+            track_event('note_edited', note_id=self.note.id)
+        else:
+            self.main_screen.add_note(Note(title, content))
+        self.close()
+
+    def go_back(self, *args):
+        if self._values() != self._original:
+            confirm("Discard changes?", "Your changes to this note will be lost.",
+                    "Discard", self.close, danger=True)
+        else:
+            self.close()
+
+    def close(self):
+        self.ids.title_input.focus = False
+        self.ids.content_input.focus = False
         if self.manager:
-            self.manager.current = "main"
             self.manager.transition.direction = 'right'
-
-    def clear_input_fields(self):
-        self.title_input.text = ""
-        self.content_input.text = ""
-            
-    def go_back(self, instance):
-        if self.manager:
             self.manager.current = "main"
-            self.manager.transition.direction = 'right'
-
-    def show_error_popup(self, message):
-        content = MDBoxLayout(orientation='vertical', spacing=5, padding=[10, 5])
-        
-        error_label = Label(
-            text=message,
-            color=(1, 1, 1, 1),
-            font_size='16sp'
-        )
-        
-        ok_button = MDFlatButton(
-            text="OK",
-            size_hint_y=None,
-            height=40,
-            text_color=(0, 0, 0, 1),
-            md_bg_color=(0, 0, 0, 1)
-        )
-        
-        ok_button.bind(on_press=lambda instance: popup.dismiss())
-        
-        content.add_widget(error_label)
-        content.add_widget(ok_button)
-        
-        popup = Popup(
-            title="Error",
-            content=content,
-            size_hint=(0.8, 0.4),
-            title_color=(1, 1, 1, 1),
-            separator_color=(0.05, 0.05, 0.05, 1)
-        )
-        
-        popup.open()

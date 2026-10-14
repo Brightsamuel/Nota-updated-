@@ -1,6 +1,5 @@
 import sqlite3
 from datetime import datetime
-import traceback
 
 class DatabaseHelper:
     def __init__(self, db_name='notes.db'):
@@ -201,14 +200,43 @@ class DatabaseHelper:
         finally:
             self.close()
 
-    def search_notes(self, query):
-        """Search for notes by title or content."""
+    def get_visible_notes(self):
+        """Retrieve every note except those inside locked folders."""
         try:
             cursor = self.connect()
-            cursor.execute(
-                "SELECT * FROM notes WHERE title LIKE ? OR content LIKE ? ORDER BY updated_at DESC",
-                (f'%{query}%', f'%{query}%')
-            )
+            cursor.execute("""
+                SELECT n.* FROM notes n
+                LEFT JOIN folders f ON n.folder_id = f.id
+                WHERE f.id IS NULL OR f.is_locked = 0
+                ORDER BY n.is_pinned DESC, n.updated_at DESC
+            """)
+            return cursor.fetchall()
+        finally:
+            self.close()
+
+    def search_notes(self, query, folder_id=None):
+        """Search notes by title or content.
+
+        With a folder_id, only that folder is searched; otherwise notes in
+        locked folders are left out of the results.
+        """
+        try:
+            cursor = self.connect()
+            pattern = f'%{query}%'
+            if folder_id is None:
+                cursor.execute("""
+                    SELECT n.* FROM notes n
+                    LEFT JOIN folders f ON n.folder_id = f.id
+                    WHERE (f.id IS NULL OR f.is_locked = 0)
+                      AND (n.title LIKE ? OR n.content LIKE ?)
+                    ORDER BY n.is_pinned DESC, n.updated_at DESC
+                """, (pattern, pattern))
+            else:
+                cursor.execute("""
+                    SELECT * FROM notes
+                    WHERE folder_id = ? AND (title LIKE ? OR content LIKE ?)
+                    ORDER BY is_pinned DESC, updated_at DESC
+                """, (folder_id, pattern, pattern))
             return cursor.fetchall()
         finally:
             self.close()
@@ -246,6 +274,16 @@ class DatabaseHelper:
             )
             self.conn.commit()
             return cursor.lastrowid
+        finally:
+            self.close()
+
+    def rename_folder(self, folder_id, name):
+        """Rename a folder."""
+        try:
+            cursor = self.connect()
+            cursor.execute("UPDATE folders SET name = ? WHERE id = ?", (name, folder_id))
+            self.conn.commit()
+            return cursor.rowcount > 0
         finally:
             self.close()
 
@@ -366,11 +404,9 @@ class DatabaseHelper:
             self.close()
         
     def update_schema(self):
+        """Update the database schema if needed"""
         if self.schema_updated:
             return  # Exit if the schema has already been updated
-        print("Updating database schema...")  # Debug print
-        print(f"Called from: {traceback.format_stack()}")  # Print the call stack
-        """Update the database schema if needed"""
         try:
             cursor = self.connect()
             # Check the existing columns in the notes table

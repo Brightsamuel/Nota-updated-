@@ -1,8 +1,7 @@
 # Requires Python 3.13 or older (Kivy 2.3.1 has no Python 3.14 build)
 kivy==2.3.1
-# The code uses KivyMD 1.x widgets (MDFlatButton, MDRaisedButton, OneLineIconListItem, ...),
-# which were removed in KivyMD 2.0
-kivymd==1.2.0
+# The UI is written for the KivyMD 2.0 API (MDButton, MDDialog parts, Material 3 colours)
+kivymd==2.0.0
 pillow
 requests
 plyer
