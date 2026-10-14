@@ -13,8 +13,8 @@ from kivy.core.clipboard import Clipboard
 from utils.event_tracker import track_event
 # Import for Google Drive functionality
 try:
-    from pydrive.auth import GoogleAuth
-    from pydrive.drive import GoogleDrive
+    from pydrive2.auth import GoogleAuth
+    from pydrive2.drive import GoogleDrive
     google_drive_available = True
 except ImportError:
     google_drive_available = False
@@ -516,8 +516,8 @@ class NoteView(MDBoxLayout):
         
         try:
             # Try to import required packages
-            from pydrive.auth import GoogleAuth
-            from pydrive.drive import GoogleDrive
+            from pydrive2.auth import GoogleAuth
+            from pydrive2.drive import GoogleDrive
             from utils.drive_helper import DriveHelper
             import webbrowser
             google_drive_available = True

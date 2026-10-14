@@ -1,6 +1,6 @@
 import os
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
 from kivy.app import App
 from kivy.utils import platform
 from kivy.storage.jsonstore import JsonStore
@@ -32,7 +32,7 @@ class DriveHelper:
             
             # Check if PyDrive is installed
             try:
-                from pydrive.auth import GoogleAuth
+                from pydrive2.auth import GoogleAuth
             except ImportError:
                 print("PyDrive not installed.")  # Debugging log
                 return False, "PyDrive not installed. Please install pydrive2 package."
